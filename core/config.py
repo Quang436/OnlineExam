@@ -1,30 +1,22 @@
-from typing import List, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
-    """
-    Application configurations.
-    These variables can be overridden by environment variables or a .env file.
-    """
     PROJECT_NAME: str = "Online Exam Proctoring System"
     API_V1_STR: str = "/api/v1"
     
-    # Security
-    SECRET_KEY: str = "YOUR_SUPER_SECRET_KEY"  # Nên thay đổi khi deploy
+    # Database URL (Ví dụ: sqlite+aiosqlite:///./exam.db hoặc postgresql+asyncpg://user:pass@localhost:5432/exam_db)
+    DATABASE_URL: str = "sqlite+aiosqlite:///./exam.db"
+    
+    # JWT Security
+    SECRET_KEY: str = "your-super-secret-key-change-it-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 ngày
     
     # CORS
-    CORS_ORIGINS: Union[str, List[str]] = ["*"]
-    
-    # Database
-    # Support both Async SQLite (for dev) and Postgres (for prod)
-    DATABASE_URL: str = "sqlite+aiosqlite:///./exam_proctor.db"
-    
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True
-    )
+    CORS_ORIGINS: list[str] = ["*"]
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 settings = Settings()

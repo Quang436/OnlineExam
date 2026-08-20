@@ -1,53 +1,54 @@
 import enum
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Text, Integer, Float, ForeignKey, DateTime, Enum, JSON
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
 
 class QuestionType(str, enum.Enum):
     MULTIPLE_CHOICE = "MULTIPLE_CHOICE"
     ESSAY = "ESSAY"
 
+
 class Exam(Base):
-    """
-    Model quản lý bộ Đề thi.
-    """
     __tablename__ = "exams"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    title = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    duration_minutes = Column(Integer, nullable=False)
-    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_by_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    # --- Relationships ---
+    # Relationships
     creator = relationship("User", back_populates="created_exams")
     questions = relationship("Question", back_populates="exam", cascade="all, delete-orphan")
     rooms = relationship("RoomSession", back_populates="exam")
 
 
 class Question(Base):
-    """
-    Model quản lý Câu hỏi thuộc Đề thi.
-    """
     __tablename__ = "questions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), index=True, nullable=False)
-    question_type = Column(Enum(QuestionType), default=QuestionType.MULTIPLE_CHOICE, nullable=False)
-    content = Column(Text, nullable=False)
-    
-    # Lưu dưới dạng Dict/Array JSON (vd: {"A": "Đáp án 1", "B": "Đáp án 2"})
-    options = Column(JSON, nullable=True) 
-    correct_answer = Column(String, nullable=False)
-    points = Column(Float, default=1.0)
-    order_index = Column(Integer, default=0)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+        index=True,
+    )
+    exam_id: Mapped[str] = mapped_column(String(36), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False, index=True)
+    type: Mapped[QuestionType] = mapped_column(Enum(QuestionType), default=QuestionType.MULTIPLE_CHOICE)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    options: Mapped[dict | list] = mapped_column(JSON, nullable=True)  # Ví dụ: ["A. ...", "B. ..."] hoặc {"A": "...", "B": "..."}
+    correct_answer: Mapped[str] = mapped_column(String(255), nullable=False)
+    points: Mapped[float] = mapped_column(Float, default=1.0)
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
 
-    # --- Relationships ---
+    # Relationships
     exam = relationship("Exam", back_populates="questions")
