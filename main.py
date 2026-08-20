@@ -1,37 +1,35 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-import os
 
 from app.core.config import settings
-from app.api.v1.router import api_router
-from app.websockets.routes import router as ws_router
+from app.core.database import Base, engine
+import app.models  # Load models để bind Base.metadata
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Khởi tạo tables tự động nếu chưa có
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    lifespan=lifespan,
 )
 
-# Kích hoạt CORS (Rất quan trọng cho WebSockets và Frontend fetch API)
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Trong production nên đặt đúng Domain
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Kết nối API v1 Logic
-app.include_router(api_router, prefix=settings.API_V1_STR)
-
-# Kết nối WebSocket Endpoints
-app.include_router(ws_router)
-
-# Phục vụ file Static (HTML, CSS, JS) để test giao diện
-static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
-def root():
-    return {"message": "Hệ thống Online Exam Proctoring is running. Visit /static/proctor_dashboard.html"}
+async def root():
+    return {"message": "Online Exam Proctoring System is running!"}
