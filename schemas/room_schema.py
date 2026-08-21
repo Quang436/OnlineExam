@@ -6,7 +6,6 @@ from app.models.room import RoomStatus
 
 class RoomCreate(BaseModel):
     exam_id: UUID
-    # Tạm thời truyền trực tiếp ID, sau này sẽ nhúng vào token Auth Middleware
     proctor_id: UUID
 
 class RoomResponse(BaseModel):
@@ -17,6 +16,7 @@ class RoomResponse(BaseModel):
     status: RoomStatus
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
+    created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from uuid import UUID
 
 from app.core.database import get_db
 from app.models.exam import Exam, Question
@@ -9,14 +10,13 @@ from app.schemas.exam_schema import ExamCreate, ExamResponse
 
 router = APIRouter()
 
-
 @router.post("/", response_model=ExamResponse, status_code=status.HTTP_201_CREATED)
 async def create_exam(exam_in: ExamCreate, db: AsyncSession = Depends(get_db)):
     exam = Exam(
         title=exam_in.title,
         description=exam_in.description,
         duration_minutes=exam_in.duration_minutes,
-        created_by_id=exam_in.proctor_id,
+        created_by_id=exam_in.created_by_id,  # Lấy đúng theo Schema Validator
     )
     db.add(exam)
     await db.flush()
@@ -25,7 +25,7 @@ async def create_exam(exam_in: ExamCreate, db: AsyncSession = Depends(get_db)):
         question = Question(
             exam_id=exam.id,
             content=q.content,
-            type=q.type,
+            question_type=q.type,
             options=q.options,
             correct_answer=q.correct_answer,
             points=q.points,
@@ -35,7 +35,7 @@ async def create_exam(exam_in: ExamCreate, db: AsyncSession = Depends(get_db)):
 
     await db.commit()
     
-    # Query lại để lấy đầy đủ relationship questions
+    # Kỹ thuật selectinload xử lý triệt để MissingGreenlet trong Async Driver
     result = await db.execute(
         select(Exam).options(selectinload(Exam.questions)).where(Exam.id == exam.id)
     )
@@ -49,7 +49,7 @@ async def list_exams(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{exam_id}", response_model=ExamResponse)
-async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db)):
+async def get_exam(exam_id: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Exam).options(selectinload(Exam.questions)).where(Exam.id == exam_id)
     )

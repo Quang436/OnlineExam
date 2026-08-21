@@ -1,36 +1,32 @@
 import enum
 import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Enum, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from typing import List
+
+from sqlalchemy import String, Enum, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-
 
 class UserRole(str, enum.Enum):
     ADMIN = "ADMIN"
     PROCTOR = "PROCTOR"
     STUDENT = "STUDENT"
 
-
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(
-        String(36),
-        primary_key=True,
-        default=lambda: str(uuid.uuid4()),
-        index=True,
-    )
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
-    username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.STUDENT, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4, index=True)
+    username: Mapped[str] = mapped_column(String, unique=True, index=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String)
+    full_name: Mapped[str] = mapped_column(String)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.STUDENT)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    created_exams = relationship("Exam", back_populates="creator")
-    submissions = relationship("Submission", back_populates="student")
+    created_exams: Mapped[List["Exam"]] = relationship(back_populates="creator")
+    room_sessions: Mapped[List["RoomSession"]] = relationship(back_populates="proctor")
+    submissions: Mapped[List["Submission"]] = relationship(back_populates="student")
+    violations: Mapped[List["ViolationsLog"]] = relationship(back_populates="student")
