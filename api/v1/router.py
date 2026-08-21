@@ -1,7 +1,7 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import exams, rooms
+from app.api.v1.endpoints.exams import router as exams_router
+from app.api.v1.endpoints.rooms import router as rooms_router
 
-api_router = APIRouter()
-
-api_router.include_router(exams.router, prefix="/exams", tags=["Quản lý Đề Thi & Trắc Nghiệm"])
-api_router.include_router(rooms.router, prefix="/rooms", tags=["Quản lý Phiên Gác Thi (Phòng)"])
+api_v1_router = APIRouter()
+api_v1_router.include_router(exams_router, prefix="/exams", tags=["Quản lý Đề Thi & Trắc Nghiệm"])
+api_v1_router.include_router(rooms_router, prefix="/rooms", tags=["Quản lý Phiên Gác Thi (Phòng)"])

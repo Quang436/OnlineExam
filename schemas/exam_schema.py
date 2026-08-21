@@ -1,55 +1,69 @@
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional, Any, Dict
-from uuid import UUID
 from app.models.exam import QuestionType
+from app.models.room import RoomStatus
 
-# --- Questions ---
+
+# --- QUESTION SCHEMAS ---
 class QuestionBase(BaseModel):
-    question_type: QuestionType = QuestionType.MULTIPLE_CHOICE
     content: str
-    options: Optional[Dict[str, Any]] = None
+    type: QuestionType = QuestionType.MULTIPLE_CHOICE
+    options: list[str] | dict | None = None
     points: float = 1.0
     order_index: int = 0
+
 
 class QuestionCreate(QuestionBase):
     correct_answer: str
 
+
 class QuestionResponseAdmin(QuestionBase):
-    """Hiển thị đủ thông tin cho Admin/Giám thị"""
-    id: UUID
-    exam_id: UUID
+    id: str
+    exam_id: str
     correct_answer: str
-    
     model_config = ConfigDict(from_attributes=True)
 
+
+# Schema trả về cho Thí sinh (ẨN correct_answer)
 class QuestionResponseStudent(QuestionBase):
-    """CẮT BỎ thuộc tính `correct_answer` khi Thí sinh query lấy đề"""
-    id: UUID
-    exam_id: UUID
-    
+    id: str
+    exam_id: str
     model_config = ConfigDict(from_attributes=True)
 
 
-# --- Exams ---
-class ExamBase(BaseModel):
+# --- EXAM SCHEMAS ---
+class ExamCreate(BaseModel):
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     duration_minutes: int
+    created_by_id: str
+    questions: list[QuestionCreate] = []
 
-class ExamCreate(ExamBase):
-    questions: List[QuestionCreate] = []
 
-class ExamResponse(ExamBase):
-    """Response trả về cho Admin kèm các Option Admin"""
-    id: UUID
-    created_by_id: UUID
-    questions: List[QuestionResponseAdmin] = []
-    
+class ExamResponse(BaseModel):
+    id: str
+    title: str
+    description: str | None
+    duration_minutes: int
+    created_by_id: str
+    created_at: datetime
+    questions: list[QuestionResponseAdmin] = []
     model_config = ConfigDict(from_attributes=True)
 
-class ExamResponseStudent(ExamBase):
-    """Response dành riêng cho Thí sinh"""
-    id: UUID
-    questions: List[QuestionResponseStudent] = []
-    
+
+# --- ROOM SCHEMAS ---
+class RoomCreate(BaseModel):
+    exam_id: str
+    proctor_id: str
+
+
+class RoomResponse(BaseModel):
+    id: str
+    exam_id: str
+    proctor_id: str
+    room_pin: str
+    status: RoomStatus
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    created_at: datetime
     model_config = ConfigDict(from_attributes=True)
