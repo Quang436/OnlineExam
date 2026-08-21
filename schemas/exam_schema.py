@@ -36,7 +36,7 @@ class ExamCreate(BaseModel):
     title: str
     description: str | None = None
     duration_minutes: int
-    created_by_id: str
+    proctor_id: str
     questions: list[QuestionCreate] = []
 
 

@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.models.exam import Exam, Question
 from app.schemas.exam_schema import ExamCreate, ExamResponse
 
-router = APIRouter(prefix="/exams", tags=["Exams"])
+router = APIRouter()
 
 
 @router.post("/", response_model=ExamResponse, status_code=status.HTTP_201_CREATED)
@@ -16,7 +16,7 @@ async def create_exam(exam_in: ExamCreate, db: AsyncSession = Depends(get_db)):
         title=exam_in.title,
         description=exam_in.description,
         duration_minutes=exam_in.duration_minutes,
-        created_by_id=exam_in.created_by_id,
+        created_by_id=exam_in.proctor_id,
     )
     db.add(exam)
     await db.flush()
