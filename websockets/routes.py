@@ -31,7 +31,7 @@ async def websocket_student_endpoint(
                 action="EXAM_STARTED",
                 payload={
                     "duration_minutes": room.exam.duration_minutes,
-                    "end_time_utc": room.ended_at.isoformat()
+                    "end_time_utc": room.ended_at.isoformat() + "Z"
                 }
             )
             await manager.send_personal_message(msg, websocket)
@@ -76,6 +76,15 @@ async def websocket_student_endpoint(
                 except Exception:
                     await db.rollback() # Catch lỗi Dummy UUID hoặc Foreign Key khi đang test MOCK
                 
+            elif msg_type == "STUDENT_ACTION":
+                action_detail = data.get("action_detail", "Đang làm bài...")
+                await manager.broadcast_to_proctors(room_id, {
+                    "type": "STUDENT_ACTION_LOG",
+                    "student_id": student_id,
+                    "action_detail": action_detail,
+                    "timestamp": time.time()
+                })
+
             elif msg_type == "AUTO_SAVE":
                 answers = data.get("answers", {})
                 

@@ -68,7 +68,7 @@ async def get_student_questions(room_id: UUID, db: AsyncSession = Depends(get_db
 @router.post("/start", response_model=RoomResponse)
 async def start_exam_room_endpoint(req: RoomStartRequest, db: AsyncSession = Depends(get_db)):
     try:
-        room = await start_room(str(req.room_id), db)
+        room = await start_room(req.room_id, db)
         await db.commit()
         await db.refresh(room)
         return room
@@ -82,7 +82,7 @@ async def start_exam_room_endpoint(req: RoomStartRequest, db: AsyncSession = Dep
 @router.post("/{room_id}/force-submit", response_model=RoomResponse)
 async def force_submit_exam_room_endpoint(room_id: UUID, db: AsyncSession = Depends(get_db)):
     try:
-        room = await force_submit_room(str(room_id), db)
+        room = await force_submit_room(room_id, db)
         await db.commit()
         await db.refresh(room)
         return room

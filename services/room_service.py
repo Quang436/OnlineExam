@@ -40,7 +40,7 @@ async def start_room(room_id: UUID, db: AsyncSession) -> RoomSession:
         action="EXAM_STARTED",
         payload={
             "duration_minutes": duration,
-            "end_time_utc": room.ended_at.isoformat()
+            "end_time_utc": room.ended_at.isoformat() + "Z"
         }
     )
     await manager.broadcast_to_room(str(room_id), msg)
@@ -69,11 +69,10 @@ async def force_submit_room(room_id: UUID, db: AsyncSession) -> RoomSession:
     # Ứng dụng bản Nháp cuối cùng AUTO_SAVE để cứu vớt điểm cho họ
     for sub in submissions_in_progress:
         await submit_exam(
-            room_id=room_id, 
-            student_id=sub.student_id, 
+            room_id=str(room_id), 
+            student_id=str(sub.student_id), 
             answers=sub.answers or {}, 
-            db=db, 
-            is_force=True
+            db=db
         )
         
     # Đóng bến đỗ
