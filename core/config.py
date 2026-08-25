@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     JWT_SECRET: str = "TAMP_SECRET_333333333"
-    GEMINI_API_KEY: str = "AIzaSyB-0MPTUSAIzaSyB-0MPTUS_YfffLHvTZuPDTCo7YVjvs5HU" # Người dùng sẽ cài qua .env hoặc truyền vào container
+    GEMINI_API_KEY: str = "AIzaSyB-0MPTUS_YfffLHvTZuPDTCo7YVjvs5HU" # Người dùng sẽ cài qua .env hoặc truyền vào container
     
     SECRET_KEY: str = "YOUR_SUPER_SECRET_KEY"
     ALGORITHM: str = "HS256"

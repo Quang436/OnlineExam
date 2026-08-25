@@ -9,8 +9,8 @@ async def extract_questions_with_gemini(raw_text: str):
         
     genai.configure(api_key=settings.GEMINI_API_KEY)
     
-    # Dùng model flash tốc độ khủng
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Dùng model gemini-2.5-flash (Model hiện đại nhất năm 2026)
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
     prompt = f"""
     Bạn là một trợ lý ảo phân tích đề thi trắc nghiệm siêu việt.
@@ -18,10 +18,10 @@ async def extract_questions_with_gemini(raw_text: str):
     Yêu cầu định dạng CHÍNH XÁC:
     [
         {{
-            "question_text": "Nội dung câu hỏi",
+            "content": "Nội dung câu hỏi",
             "points": 10,
             "options": {{"A": "Đáp án 1", "B": "Đáp án 2", "C": "Đáp án 3", "D": "Đáp án 4"}},
-            "correct_answer": "A" (chỉ 1 ký tự viết HOA)
+            "correct_answer": "A"
         }}
     ]
     
