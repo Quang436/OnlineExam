@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 import google.generativeai as genai
 from app.core.config import settings
 import json
@@ -25,13 +28,13 @@ async def extract_questions_with_gemini(raw_text: str):
         }}
     ]
     
-    LUẬT:
-    1. Trả về đúng mảng JSON, không bọc trong ```json hay markdowns nào khác, chỉ text thuần JSON.
-    2. Nếu tài liệu không ghi sẵn câu trả lời đúng, hãy tự động chọn A.
-    3. Trả về đúng 10 câu đầu nếu quá dài.
-    
-    Tài liệu thô:
-    {raw_text[:20000]}
+    LUẬT BẮT BUỘC:
+    1. Tuyệt đối chỉ trả về dữ liệu là một mảng JSON thuần túy, không bọc trong dấu ```json hay bất kỳ chữ nào khác.
+    2. Nếu tài liệu không ghi sẵn câu trả lời đúng, hãy tự động đánh là A.
+    3. Bóc tách TOÀN BỘ (tất cả) các câu hỏi có trong tài liệu, TUYỆT ĐỐI không được bỏ sót câu nào.
+
+    Tài liệu thô cần bóc tách:
+    {raw_text}
     """
     
     response = model.generate_content(prompt)
