@@ -20,14 +20,39 @@ async def parse_document(file: UploadFile = File(...), current_user: User = Depe
         if ext == 'pdf':
             pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
             for page in pdf_reader.pages:
-                raw_text += page.extract_text() + "\n"
+                page_text = page.extract_text()
+                if page_text:
+                    raw_text += page_text + "\n"
                 
         elif ext == 'docx':
             doc = docx.Document(io.BytesIO(content))
-            raw_text = "\n".join([para.text for para in doc.paragraphs])
+            lines = []
+            # Đọc các đoạn văn, phát hiện text in đậm hoặc gạch chân (thường là đáp án đúng)
+            for para in doc.paragraphs:
+                para_parts = []
+                for run in para.runs:
+                    txt = run.text
+                    if run.bold or run.underline:
+                        para_parts.append(f" [ĐÁP ÁN: {txt}] ")
+                    else:
+                        para_parts.append(txt)
+                full_para = "".join(para_parts).strip()
+                if full_para:
+                    lines.append(full_para)
+                elif para.text.strip():
+                    lines.append(para.text.strip())
+            
+            # Đọc toàn bộ các bảng trong Word (các đề thi chia cột/bảng đáp án)
+            for table in doc.tables:
+                for row in table.rows:
+                    row_cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                    if row_cells:
+                        lines.append(" | ".join(row_cells))
+                        
+            raw_text = "\n".join(lines)
             
         elif ext == 'txt':
-            raw_text = content.decode('utf-8')
+            raw_text = content.decode('utf-8', errors='ignore')
             
         else:
             raise HTTPException(400, "Chỉ hỗ trợ file PDF, DOCX, TXT")
