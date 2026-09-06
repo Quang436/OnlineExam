@@ -52,7 +52,7 @@ async def websocket_student_endpoint(
                 }, websocket)
                 
             elif msg_type == "VIOLATION_ALERT":
-                v_type = data.get("violation_type")
+                v_type = data.get("violation_type", "TAB_SWITCH")
                 details = data.get("details", {})
                 
                 # Phản ứng 1: Broadcast ngay cho Giám thị xem
@@ -66,16 +66,26 @@ async def websocket_student_endpoint(
                 
                 # Phản ứng 2: Insert ghi bằng chứng vào DB
                 try:
+                    from app.models.submission import ViolationType
+                    enum_v_type = ViolationType(v_type) if v_type in ViolationType._value2member_map_ else ViolationType.TAB_SWITCH
                     violation = ViolationsLog(
                         room_id=string_to_uuid(room_id),
                         student_id=string_to_uuid(student_id),
-                        violation_type=v_type,
+                        violation_type=enum_v_type,
                         evidence_metadata=details
                     )
                     db.add(violation)
                     await db.commit()
-                except Exception:
-                    await db.rollback() # Catch lỗi Dummy UUID hoặc Foreign Key khi đang test MOCK
+                except Exception as e:
+                    print(f"[WS] Error saving ViolationsLog: {e}")
+                    await db.rollback()
+
+                # Phản ứng 3: Phản hồi lại cho chính thí sinh để cập nhật số lần vi phạm trên màn hình
+                await manager.send_personal_message({
+                    "type": "VIOLATION_RECORDED",
+                    "violation_type": v_type,
+                    "details": details
+                }, websocket)
                 
             elif msg_type == "STUDENT_ACTION":
                 action_detail = data.get("action_detail", "Đang làm bài...")

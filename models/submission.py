@@ -18,6 +18,8 @@ class ViolationType(str, enum.Enum):
     RESIZE = "RESIZE"
     COPY_PASTE = "COPY_PASTE"
     OFFLINE = "OFFLINE"
+    RIGHT_CLICK = "RIGHT_CLICK"
+    DEVTOOLS = "DEVTOOLS"
 
 class Submission(Base):
     __tablename__ = "submissions"

@@ -50,6 +50,30 @@ async def get_room_by_pin(pin: str, db: AsyncSession = Depends(get_db)):
     return room
 
 
+@router.get("/exam/{exam_id}/active", response_model=RoomResponse | None)
+async def get_active_room_for_exam(exam_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Lấy phòng thi đang mở (PENDING hoặc ACTIVE) của một đề thi"""
+    stmt = (
+        select(RoomSession)
+        .where(
+            RoomSession.exam_id == exam_id,
+            RoomSession.status.in_([RoomStatus.PENDING, RoomStatus.ACTIVE])
+        )
+        .order_by(RoomSession.created_at.desc())
+    )
+    res = await db.execute(stmt)
+    return res.scalars().first()
+
+
+@router.get("/{room_id}", response_model=RoomResponse)
+async def get_room_by_id(room_id: UUID, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(RoomSession).where(RoomSession.id == room_id))
+    room = res.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=404, detail="Phòng thi không tồn tại")
+    return room
+
+
 @router.get("/{room_id}/student-questions", response_model=list[QuestionResponseStudent])
 async def get_student_questions(room_id: UUID, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(RoomSession).where(RoomSession.id == room_id))
