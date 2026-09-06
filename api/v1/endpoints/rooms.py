@@ -110,14 +110,14 @@ async def student_submit_exam(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        score = await submit_exam(
+        score, detailed_results = await submit_exam(
             room_id=str(room_id), 
             student_id=str(req.student_id), 
             answers=req.answers, 
             db=db
         )
         await db.commit()
-        return {"detail": "Nộp bài thành công", "score": score}
+        return {"detail": "Nộp bài thành công", "score": score, "detailed_results": detailed_results}
     except ValueError as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))

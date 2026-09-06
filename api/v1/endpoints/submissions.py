@@ -14,7 +14,7 @@ router = APIRouter()
 async def submit_student_exam(req: SubmissionCreate, db: AsyncSession = Depends(get_db)):
     try:
         # Gọi tầng Service để chấm điểm khép kín
-        score = await submit_exam(
+        score, detailed_results = await submit_exam(
             room_id=str(req.room_id), 
             student_id=str(req.student_id), 
             answers=req.answers, 
@@ -28,7 +28,18 @@ async def submit_student_exam(req: SubmissionCreate, db: AsyncSession = Depends(
             Submission.student_id == req.student_id
         )
         submission = (await db.execute(stmt)).scalars().first()
-        return submission
+        
+        return SubmissionResponse(
+            id=submission.id,
+            room_id=submission.room_id,
+            student_id=submission.student_id,
+            answers=submission.answers,
+            status=submission.status,
+            score=submission.score,
+            started_at=submission.started_at,
+            submitted_at=submission.submitted_at,
+            detailed_results=detailed_results
+        )
         
     except ValueError as e:
         await db.rollback()

@@ -25,6 +25,17 @@ class SubmissionCreate(BaseModel):
     def convert_student_id(cls, v):
         return string_to_uuid(v)
 
+class QuestionResultDetail(BaseModel):
+    order: int
+    question_id: str
+    content: str
+    options: Optional[Any] = None
+    student_answer: Optional[str] = None
+    correct_answer: str
+    is_correct: bool
+    points: float
+    points_earned: float
+
 class SubmissionResponse(BaseModel):
     id: UUID
     room_id: UUID
@@ -34,6 +45,7 @@ class SubmissionResponse(BaseModel):
     score: Optional[float]
     started_at: datetime
     submitted_at: Optional[datetime]
+    detailed_results: Optional[list[QuestionResultDetail]] = None
     
     model_config = ConfigDict(from_attributes=True)
 
