@@ -10,6 +10,7 @@ from app.websockets.manager import manager
 from app.models.room import RoomSession, RoomStatus
 from app.models.submission import ViolationsLog, Submission
 from app.schemas.ws_messages import BroadcastActionMessage
+from app.schemas.submission_schema import string_to_uuid
 
 ws_router = APIRouter(prefix="/ws", tags=["WebSockets"])
 
@@ -63,11 +64,11 @@ async def websocket_student_endpoint(
                     "timestamp": time.time()
                 })
                 
-                # Phản ứng 2: Insert ghi bằng chứng vào PostgreSQL
+                # Phản ứng 2: Insert ghi bằng chứng vào DB
                 try:
                     violation = ViolationsLog(
-                        room_id=UUID(room_id),
-                        student_id=UUID(student_id),
+                        room_id=string_to_uuid(room_id),
+                        student_id=string_to_uuid(student_id),
                         violation_type=v_type,
                         evidence_metadata=details
                     )
@@ -89,10 +90,10 @@ async def websocket_student_endpoint(
                 answers = data.get("answers", {})
                 
                 try:
-                    # Update DB (Bonus bảo mật Database từ tôi)
+                    # Update DB
                     sub_stmt = select(Submission).where(
-                        Submission.room_id == UUID(room_id),
-                        Submission.student_id == UUID(student_id)
+                        Submission.room_id == string_to_uuid(room_id),
+                        Submission.student_id == string_to_uuid(student_id)
                     )
                     submission = (await db.execute(sub_stmt)).scalars().first()
                     if submission:

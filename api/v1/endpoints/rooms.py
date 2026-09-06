@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from typing import Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from uuid import UUID
 
 from app.core.database import get_db
@@ -13,6 +13,7 @@ from app.models.exam import Exam
 from app.models.room import RoomSession, RoomStatus
 from app.schemas.exam_schema import QuestionResponseStudent
 from app.schemas.room_schema import RoomCreate, RoomResponse, RoomStartRequest
+from app.schemas.submission_schema import string_to_uuid
 from app.services.room_service import start_room, force_submit_room
 from app.services.exam_service import submit_exam
 
@@ -96,6 +97,11 @@ async def force_submit_exam_room_endpoint(room_id: UUID, db: AsyncSession = Depe
 class SubmitRequest(BaseModel):
     student_id: UUID
     answers: Dict[str, Any]
+
+    @field_validator("student_id", mode="before")
+    @classmethod
+    def validate_student_id(cls, v):
+        return string_to_uuid(v)
 
 @router.post("/{room_id}/submit")
 async def student_submit_exam(

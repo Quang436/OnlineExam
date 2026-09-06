@@ -8,11 +8,12 @@ from typing import Dict, Any
 from app.models.exam import Exam
 from app.models.room import RoomSession
 from app.models.submission import Submission, SubmissionStatus, ViolationsLog, ViolationType
+from app.schemas.submission_schema import string_to_uuid
 
 async def submit_exam(room_id: str, student_id: str, answers: Dict[str, Any], db: AsyncSession) -> float:
     # 1. Parse an toàn Id
-    room_uid = UUID(room_id)
-    student_uid = UUID(student_id)
+    room_uid = string_to_uuid(room_id)
+    student_uid = string_to_uuid(student_id)
     
     # 2. Check Phòng
     stmt = select(RoomSession).where(RoomSession.id == room_uid)
@@ -65,8 +66,8 @@ async def submit_exam(room_id: str, student_id: str, answers: Dict[str, Any], db
 
 async def log_violation(room_id: str, student_id: str, violation_type: str, details: Dict[str, Any], db: AsyncSession):
     violation = ViolationsLog(
-        room_id=UUID(room_id),
-        student_id=UUID(student_id),
+        room_id=string_to_uuid(room_id),
+        student_id=string_to_uuid(student_id),
         violation_type=ViolationType(violation_type),
         evidence_metadata=details,
         timestamp=datetime.utcnow()
