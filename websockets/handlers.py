@@ -34,17 +34,19 @@ async def handle_student_message(
     elif msg_type == "VIOLATION_ALERT":
         # 2. Xử lý log Gian Lận gửi từ API Trình Duyệt Client
         try:
+            from app.schemas.submission_schema import string_to_uuid
             violation_msg = ViolationAlertMessage(**data)
             
             # Ghi Database
             db_violation = ViolationsLog(
-                room_id=room_id,
-                student_id=student_id,
+                room_id=string_to_uuid(room_id),
+                student_id=string_to_uuid(student_id),
                 violation_type=ViolationType(violation_msg.violation_type),
-                evidence_data=violation_msg.details
+                evidence_metadata=violation_msg.details
             )
             db.add(db_violation)
             await db.commit()
+
             
             # Bắn Broadcast WebSocket để thông báo tức thì cho Giám Thị trên View Dashboard
             broadcast_msg = NewViolationBroadcast(

@@ -32,3 +32,19 @@ class UserResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+
+class UserPasswordReset(BaseModel):
+    new_password: str
+
+class UserDetailResponse(UserResponse):
+    exams_count: int = 0
+    rooms_count: int = 0
+    submissions_count: int = 0
+    violations_count: int = 0
+

@@ -58,3 +58,23 @@ class ViolationLogResponse(BaseModel):
     timestamp: datetime
     
     model_config = ConfigDict(from_attributes=True)
+
+class ViolationLogDetailResponse(BaseModel):
+    id: UUID
+    room_id: UUID
+    room_pin: str
+    exam_title: str
+    student_id: UUID
+    student_name: str
+    student_username: str
+    violation_type: ViolationType
+    evidence_metadata: Optional[Dict[str, Any]] = None
+    timestamp: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ViolationStatsResponse(BaseModel):
+    total_violations: int
+    by_type: Dict[str, int]
+    top_violators: list[Dict[str, Any]]
+
