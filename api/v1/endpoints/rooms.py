@@ -1,5 +1,6 @@
 import random
 import string
+import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import select, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,15 +58,26 @@ async def list_all_rooms(
         select(RoomSession)
         .options(selectinload(RoomSession.exam), selectinload(RoomSession.proctor))
     )
-    if status is not None:
+    if status is not None and isinstance(status, (RoomStatus, str)):
         query = query.where(RoomSession.status == status)
         
     query = query.order_by(RoomSession.created_at.desc())
     res = await db.execute(query)
     all_rooms = res.scalars().all()
     
-    if search:
+    # Tự động cập nhật các phòng thi ACTIVE đã hết giờ thành COMPLETED
+    now_utc = datetime.datetime.utcnow()
+    rooms_updated = False
+    for r in all_rooms:
+        if r.status == RoomStatus.ACTIVE and r.ended_at and r.ended_at <= now_utc:
+            r.status = RoomStatus.COMPLETED
+            rooms_updated = True
+    if rooms_updated:
+        await db.commit()
+    
+    if search and isinstance(search, str):
         s = search.strip().lower()
+
         filtered = []
         for r in all_rooms:
             pin_match = s in r.room_pin.lower()
@@ -75,9 +87,12 @@ async def list_all_rooms(
                 filtered.append(r)
         all_rooms = filtered
 
-    paginated_rooms = all_rooms[offset : offset + limit]
+    lim = limit if isinstance(limit, int) else 100
+    off = offset if isinstance(offset, int) else 0
+    paginated_rooms = all_rooms[off : off + lim]
     if not paginated_rooms:
         return []
+
 
     room_ids = [r.id for r in paginated_rooms]
 
@@ -171,11 +186,14 @@ async def delete_room(room_id: UUID, db: AsyncSession = Depends(get_db)):
 
 @router.get("/pin/{pin}", response_model=RoomResponse)
 async def get_room_by_pin(pin: str, db: AsyncSession = Depends(get_db)):
-
     res = await db.execute(select(RoomSession).where(RoomSession.room_pin == pin))
     room = res.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Mã phòng không hợp lệ")
+    if room.status == RoomStatus.ACTIVE and room.ended_at and room.ended_at <= datetime.datetime.utcnow():
+        room.status = RoomStatus.COMPLETED
+        await db.commit()
+        await db.refresh(room)
     return room
 
 
@@ -191,7 +209,12 @@ async def get_active_room_for_exam(exam_id: UUID, db: AsyncSession = Depends(get
         .order_by(RoomSession.created_at.desc())
     )
     res = await db.execute(stmt)
-    return res.scalars().first()
+    room = res.scalars().first()
+    if room and room.status == RoomStatus.ACTIVE and room.ended_at and room.ended_at <= datetime.datetime.utcnow():
+        room.status = RoomStatus.COMPLETED
+        await db.commit()
+        return None
+    return room
 
 
 @router.get("/{room_id}", response_model=RoomResponse)

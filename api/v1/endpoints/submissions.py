@@ -95,19 +95,20 @@ async def list_all_violations(
         )
     )
 
-    if room_id:
+    if room_id and isinstance(room_id, UUID):
         query = query.where(ViolationsLog.room_id == room_id)
-    if student_id:
+    if student_id and isinstance(student_id, UUID):
         query = query.where(ViolationsLog.student_id == student_id)
-    if violation_type:
+    if violation_type and isinstance(violation_type, (ViolationType, str)):
         query = query.where(ViolationsLog.violation_type == violation_type)
 
     query = query.order_by(ViolationsLog.timestamp.desc())
     res = await db.execute(query)
     all_logs = res.scalars().all()
 
-    if search:
+    if search and isinstance(search, str):
         s = search.strip().lower()
+
         filtered = []
         for l in all_logs:
             s_name = l.student.full_name.lower() if l.student else ""
@@ -116,11 +117,12 @@ async def list_all_violations(
             e_title = l.room.exam.title.lower() if (l.room and l.room.exam) else ""
             if s in s_name or s in s_user or s in r_pin or s in e_title:
                 filtered.append(l)
-        all_logs = filtered
-
-    paginated_logs = all_logs[offset : offset + limit]
+    lim = limit if isinstance(limit, int) else 100
+    off = offset if isinstance(offset, int) else 0
+    paginated_logs = all_logs[off : off + lim]
     
     result = []
+
     for l in paginated_logs:
         result.append(ViolationLogDetailResponse(
             id=l.id,

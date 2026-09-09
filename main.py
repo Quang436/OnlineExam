@@ -7,7 +7,8 @@ import os
 from app.api.v1.router import api_v1_router
 from app.websockets.routes import ws_router
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, engine, async_session_maker
+from app.core.init_db import seed_initial_data
 import app.models
 
 @asynccontextmanager
@@ -15,7 +16,13 @@ async def lifespan(app: FastAPI):
     # Khởi tạo tables chuẩn khi bật hệ thống
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Nạp dữ liệu sinh viên mẫu và tài khoản hệ thống
+    async with async_session_maker() as session:
+        await seed_initial_data(session)
+
     yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

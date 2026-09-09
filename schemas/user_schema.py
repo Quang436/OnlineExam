@@ -13,6 +13,22 @@ class TokenPayload(BaseModel):
     sub: Optional[str] = None
     role: Optional[str] = None
 
+class StudentLoginRequest(BaseModel):
+    student_code: str
+    password: str
+
+class StudentLoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    student: "UserResponse"
+
+class SampleStudentItem(BaseModel):
+    student_code: str
+    full_name: str
+    email: str
+    default_password: str = "123456"
+
+
 # User
 class UserCreate(BaseModel):
     username: str

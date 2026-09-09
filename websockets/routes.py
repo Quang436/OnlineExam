@@ -1,4 +1,5 @@
 import time
+import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -23,21 +24,52 @@ async def websocket_student_endpoint(
 ):
     await manager.connect_student(room_id, student_id, websocket)
     
-    # [Luật Bổ Sung] Xử lý Late join / Reconnect
+    # [Luật Bổ Sung] Xử lý Late join / Reconnect / Phòng Chờ Thi
     try:
         stmt = select(RoomSession).options(selectinload(RoomSession.exam)).where(RoomSession.id == UUID(room_id))
         room = (await db.execute(stmt)).scalars().first()
-        if room and room.status == RoomStatus.ACTIVE:
-            msg = BroadcastActionMessage(
-                action="EXAM_STARTED",
-                payload={
-                    "duration_minutes": room.exam.duration_minutes,
-                    "end_time_utc": room.ended_at.isoformat() + "Z"
-                }
-            )
-            await manager.send_personal_message(msg, websocket)
-    except Exception:
-        pass
+        if room:
+            now_utc = datetime.datetime.utcnow()
+            if room.status == RoomStatus.ACTIVE:
+                if room.ended_at and room.ended_at <= now_utc:
+                    # Phòng thi đã hết giờ làm bài -> chuyển trạng thái sang COMPLETED
+                    room.status = RoomStatus.COMPLETED
+                    await db.commit()
+                    await manager.send_personal_message({
+                        "type": "ROOM_EXPIRED",
+                        "action": "ROOM_EXPIRED",
+                        "message": "Phòng thi này đã kết thúc thời gian làm bài!"
+                    }, websocket)
+                else:
+                    # Phòng thi đang diễn ra hợp lệ -> gửi thông báo bắt đầu kèm thời gian kết thúc
+                    msg = BroadcastActionMessage(
+                        action="EXAM_STARTED",
+                        payload={
+                            "duration_minutes": room.exam.duration_minutes if room.exam else 60,
+                            "end_time_utc": room.ended_at.isoformat() + "Z" if room.ended_at else ""
+                        }
+                    )
+                    await manager.send_personal_message(msg, websocket)
+            elif room.status == RoomStatus.COMPLETED:
+                await manager.send_personal_message({
+                    "type": "ROOM_EXPIRED",
+                    "action": "ROOM_EXPIRED",
+                    "message": "Phòng thi này đã hoàn thành hoặc đã kết thúc!"
+                }, websocket)
+            elif room.status == RoomStatus.PENDING:
+                # Phòng đang ở trạng thái chờ giám thị mở đề thi
+                await manager.send_personal_message({
+                    "type": "ROOM_WAITING",
+                    "action": "ROOM_WAITING",
+                    "payload": {
+                        "room_id": str(room.id),
+                        "room_pin": room.room_pin,
+                        "exam_title": room.exam.title if room.exam else "Đề thi trắc nghiệm",
+                        "duration_minutes": room.exam.duration_minutes if room.exam else 60
+                    }
+                }, websocket)
+    except Exception as e:
+        print(f"[WS Connect Init Error]: {e}")
     
     try:
         while True:

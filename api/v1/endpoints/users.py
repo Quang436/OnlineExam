@@ -27,12 +27,13 @@ async def list_users(
     """Lấy danh sách người dùng với các tiêu chí tìm kiếm và thống kê đi kèm"""
     query = select(User)
     
-    if role is not None:
+    if role is not None and isinstance(role, (UserRole, str)):
         query = query.where(User.role == role)
-    if is_active is not None:
+    if is_active is not None and isinstance(is_active, bool):
         query = query.where(User.is_active == is_active)
-    if search:
+    if search and isinstance(search, str):
         search_pattern = f"%{search.strip()}%"
+
         query = query.where(
             or_(
                 User.full_name.ilike(search_pattern),
@@ -41,9 +42,12 @@ async def list_users(
             )
         )
     
-    query = query.order_by(User.created_at.desc()).offset(offset).limit(limit)
+    lim = limit if isinstance(limit, int) else 100
+    off = offset if isinstance(offset, int) else 0
+    query = query.order_by(User.created_at.desc()).offset(off).limit(lim)
     res = await db.execute(query)
     users = res.scalars().all()
+
     
     if not users:
         return []
